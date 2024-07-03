@@ -1,35 +1,77 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import _React, { useEffect, useState } from "react";
+// import { useTaskStore } from "./db/store";
+import { supabase } from "./db/supabaseClient";
+import { User } from "@supabase/supabase-js";
+import Todo from "./components/todo";
 
-function App() {
-  const [count, setCount] = useState(0)
+export default function App() {
+	// const tasks = useTaskStore((state) => state.tasks);
+	// const fetchTasks = useTaskStore((state) => state.fetchTasks);
+	// const addTask = useTaskStore((state) => state.subscribeToTasks);
 
-  return (
-    <>
-      <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+	const [user, setUser] = useState<User>();
+
+	// const handleLogin = async () => {
+	// 	// fetchTasks();
+	// 	// addTask("hello");
+	// 	// console.log(tasks);
+	// 	await supabase.auth.signInWithOAuth({ provider: "discord" });
+	// };
+
+	useEffect(() => {
+		(async () => {
+			const session = await supabase.auth.getSession();
+			if (session.data.session) {
+				setUser(session.data.session.user);
+				const { data: authListener } = supabase.auth.onAuthStateChange(
+					async (event, session) => {
+						switch (event) {
+							case "SIGNED_IN":
+								setUser(session?.user);
+								break;
+							case "SIGNED_OUT":
+								setUser(undefined);
+								break;
+							default:
+						}
+					}
+				);
+				return () => {
+					authListener.subscription.unsubscribe();
+				};
+			}
+		})();
+	}, []);
+
+	const login = async () => {
+		await supabase.auth.signInWithOAuth({
+			provider: "discord",
+		});
+	};
+	// const logout = async () => {
+	// 	await supabase.auth.signOut();
+	// };
+
+	return (
+		<>
+			{/* <h1>App</h1>
+			{user ? (
+				<div>
+					<h1>Authenticated</h1>
+					<button onClick={logout}>Logout</button>
+				</div>
+			) : (
+				<button onClick={login}>Login with Discord</button>
+			)}
+      <hr/> */}
+			<h1>Auth Test</h1>
+			<div>
+				{user ? (
+					<Todo user={user} />
+				) : (
+					<button onClick={login}>Login with Discord</button>
+				)}
+			</div>
+		</>
+	);
 }
-
-export default App
